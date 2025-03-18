@@ -1,0 +1,120 @@
+module pipelined_processor(
+    input clk,
+    input reset
+);
+
+    // Define registers for each pipeline stage
+    reg [31:0] IF_ID_IR;   // Instruction register between IF and ID stages
+    reg [31:0] ID_EX_IR, ID_EX_A, ID_EX_B;   // IR, A, and B registers between ID and EX
+    reg [31:0] EX_MEM_IR, EX_MEM_ALU_Result; // IR and ALU Result between EX and MEM
+    reg [31:0] MEM_WB_IR, MEM_WB_Data;       // IR and Data between MEM and WB
+    
+    // Define registers for the register file (32 registers)
+    reg [31:0] regfile [0:31];
+    
+    // Define instruction opcodes
+    localparam ADD = 6'b000000;
+    localparam SUB = 6'b000001;
+    localparam LOAD = 6'b000010;
+    
+    // Stage 1: IF - Instruction Fetch
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            IF_ID_IR <= 32'b0;
+        end else begin
+            // Fetch instruction from memory (here we simulate with a constant value)
+            IF_ID_IR <= 32'b000000_00001_00010_00011_00000_000000; // Example instruction (ADD r1, r2, r3)
+        end
+    end
+
+    // Stage 2: ID - Instruction Decode
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            ID_EX_IR <= 32'b0;
+            ID_EX_A <= 32'b0;
+            ID_EX_B <= 32'b0;
+        end else begin
+            // Decode the instruction
+            ID_EX_IR <= IF_ID_IR;
+            // Read the registers (assuming 3-operand format for ADD/SUB)
+            ID_EX_A <= regfile[IF_ID_IR[25:21]];  // Register A
+            ID_EX_B <= regfile[IF_ID_IR[20:16]];  // Register B
+        end
+    end
+
+    // Stage 3: EX - Execute
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            EX_MEM_IR <= 32'b0;
+            EX_MEM_ALU_Result <= 32'b0;
+        end else begin
+            EX_MEM_IR <= ID_EX_IR;
+            // Perform the arithmetic operation (ADD or SUB)
+            case (ID_EX_IR[31:26])
+                ADD: EX_MEM_ALU_Result <= ID_EX_A + ID_EX_B;
+                SUB: EX_MEM_ALU_Result <= ID_EX_A - ID_EX_B;
+                LOAD: EX_MEM_ALU_Result <= ID_EX_A + ID_EX_B; // Address calculation for load
+                default: EX_MEM_ALU_Result <= 32'b0;
+            endcase
+        end
+    end
+
+    // Stage 4: MEM - Memory Access & WB - Write Back
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            MEM_WB_IR <= 32'b0;
+            MEM_WB_Data <= 32'b0;
+        end else begin
+            MEM_WB_IR <= EX_MEM_IR;
+            // For load instructions, memory access happens here (for simplicity, we assume a constant value)
+            MEM_WB_Data <= (EX_MEM_IR[31:26] == LOAD) ? 32'h0000_1234 : EX_MEM_ALU_Result;
+        end
+    end
+
+    // Write Back - Update the register file
+    always @(posedge clk) begin
+        if (MEM_WB_IR[31:26] == ADD || MEM_WB_IR[31:26] == SUB) begin
+            regfile[MEM_WB_IR[15:11]] <= MEM_WB_Data;  // Write result to destination register
+        end
+    end
+
+endmodule
+test bench
+module tb_pipelined_processor;
+
+    reg clk;
+    reg reset;
+    
+    // Instantiate the pipelined processor
+    pipelined_processor uut (
+        .clk(clk),
+        .reset(reset)
+    );
+    
+    // Clock generation
+    always begin
+        #5 clk = ~clk;
+    end
+    
+    initial begin
+        // Initialize signals
+        clk = 0;
+        reset = 0;
+        
+        // Reset the processor
+        #10 reset = 1;
+        #10 reset = 0;
+        
+        // Simulate some cycles
+        #10;
+        #10;
+        #10;
+        #10;
+        #10;
+        
+        // Add more cycles as needed for testing
+        
+        $finish;  // End simulation
+    end
+
+endmodule
