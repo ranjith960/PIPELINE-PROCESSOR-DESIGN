@@ -1,5 +1,9 @@
 # PIPELINE-PROCESSOR-DESIGN
 *COMPANY*:CODETECH IT SOLUTIONS *NAME*:G.RANJITH *INTERN ID*:CT08UFA *DOMAIN*:VLSI *DURATION*:4 WEEKS *MENTOR*:NEELA SANTOSH
+
+
+
+
 In VLSI design, a **pipelined processor** is a type of processor architecture that improves performance by overlapping the execution of multiple instructions. It achieves this by dividing the execution process into discrete stages, where each stage performs a specific part of the operation, and different instructions are processed simultaneously in different stages.
 
 ### Key Concepts of Pipeline Processor Design
